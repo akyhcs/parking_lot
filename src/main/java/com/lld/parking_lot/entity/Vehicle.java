@@ -45,7 +45,12 @@ public class Vehicle {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private VehicleType type;
-
+    /**
+     * If you omit @Column: JPA uses intelligent defaults:
+    Column Name: Same as the field name (e.g., brand becomes brand).
+    Data Type: Inferred from the Java type (e.g., String becomes VARCHAR(255)).
+    Nullability: Default is nullable = true
+    */
     // Optional metadata for identification purposes
     private String brand;  // e.g., "Toyota"
     private String model;  // e.g., "Camry"
