@@ -6,10 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
-@Repository // This tells Spring to create a Bean for this interface
+@Repository
 public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
-
-    // Custom query to find a car by its plate
-    // Spring generates the SQL for this automatically!
     Optional<Vehicle> findByLicensePlate(String licensePlate);
 }

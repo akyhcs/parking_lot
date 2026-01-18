@@ -76,6 +76,18 @@ public class Vehicle {
      */
     @PrePersist
     protected void onCreate() {
+        /*
+        // Time is 10:00:00
+        Vehicle vehicle = new Vehicle(); 
+        // If you used inline init, createdAt is now 10:00:00
+
+        // ... perform some heavy logic or wait for user confirmation ...
+        Thread.sleep(5000); // 5 seconds pass
+
+        // Time is now 10:00:05
+        vehicleRepository.save(vehicle); 
+        // With @PrePersist, createdAt is set here (10:00:05)
+        */
         this.createdAt = LocalDateTime.now();
     }
 }

@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * Represents a transaction or session for a vehicle parking in a spot.
@@ -52,4 +53,14 @@ public class ParkingTicket {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TicketStatus status = TicketStatus.ACTIVE;
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.entryTime == null) {
+            this.entryTime = LocalDateTime.now();
+        }
+        if (this.ticketNumber == null) {
+            this.ticketNumber = UUID.randomUUID().toString();
+        }
+    }
 }

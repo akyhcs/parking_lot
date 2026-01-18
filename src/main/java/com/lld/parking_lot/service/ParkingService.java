@@ -34,33 +34,32 @@ public class ParkingService {
     }
 
     public ParkingTicket enterParkingLot(String licensePlate, VehicleType type) {
-        
-        // STEP 1: Check if the vehicle exists
-        // We try to find it. If not found, we create a new one on the fly.
-        Vehicle vehicle = vehicleRepository.findByLicensePlate(licensePlate)
+        Vehicle vehicle = getOrCreateVehicle(licensePlate, type);
+        ParkingSpot spot = assignSpot(vehicle, type);
+        return createTicket(vehicle, spot);
+    }
+
+    private Vehicle getOrCreateVehicle(String licensePlate, VehicleType type) {
+        return vehicleRepository.findByLicensePlate(licensePlate)
                 .orElseGet(() -> {
-                    // This block runs ONLY if the car is new
                     Vehicle newVehicle = new Vehicle();
                     newVehicle.setLicensePlate(licensePlate);
                     newVehicle.setType(type);
                     return vehicleRepository.save(newVehicle);
                 });
+    }
 
-        // STEP 2: Create the Ticket for THIS visit
-        ParkingTicket ticket = new ParkingTicket();
-        ticket.setVehicle(vehicle); // Re-uses the ID (e.g., 50)
-        ticket.setEntryTime(LocalDateTime.now());
-
-        // STEP 3: Allocate a Parking Spot
+    private ParkingSpot assignSpot(Vehicle vehicle, VehicleType type) {
         ParkingSpot spot = allocateSpot(type);
-        
-        // Mark spot as occupied
         spot.setOccupied(true);
         spot.setCurrentVehicle(vehicle);
-        spotRepository.save(spot);
+        return spotRepository.save(spot);
+    }
 
+    private ParkingTicket createTicket(Vehicle vehicle, ParkingSpot spot) {
+        ParkingTicket ticket = new ParkingTicket();
+        ticket.setVehicle(vehicle);
         ticket.setParkingSpot(spot);
-
         return ticketRepository.save(ticket);
     }
 
@@ -76,7 +75,19 @@ public class ParkingService {
         }
         throw new RuntimeException("No parking spot available for vehicle type: " + vehicleType);
     }
-
+    /**
+     * Generates a prioritized list of suitable parking spot types for a given vehicle.
+     * <p>
+     * Implements a "Best Fit" hierarchy:
+     * 1. <b>Exact Match:</b> Prioritizes the spot type that matches the vehicle (e.g., Compact -> Compact).
+     * 2. <b>Upgrade:</b> If the exact match is unavailable, allows larger spots (e.g., Compact -> SUV).
+     * 3. <b>Restriction:</b> Prevents larger vehicles from occupying smaller spots.
+     * </p>
+     *
+     * @param type The type of the vehicle entering the lot.
+     * @return A list of allowed spot types, ordered from most to least efficient.
+     * @example Input: COMPACT -> Returns: [COMPACT, SEDAN, SUV, TRUCK]
+     */
     private List<VehicleType> getSuitableSpotTypes(VehicleType type) {
         List<VehicleType> types = new ArrayList<>();
         types.add(type); // Try exact match first
