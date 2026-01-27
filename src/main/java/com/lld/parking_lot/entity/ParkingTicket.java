@@ -40,6 +40,20 @@ public class ParkingTicket {
     @JoinColumn(name = "spot_id", nullable = false)
     private ParkingSpot parkingSpot;
 
+    /**
+     * The gate used by the vehicle to enter.
+     */
+    @ManyToOne
+    @JoinColumn(name = "entrance_gate_id", nullable = false)
+    private Gate entranceGate;
+
+    /**
+     * The gate used by the vehicle to exit. Null until the vehicle exits.
+     */
+    @ManyToOne
+    @JoinColumn(name = "exit_gate_id")
+    private Gate exitGate;
+
     @Column(nullable = false)
     private LocalDateTime entryTime;
 

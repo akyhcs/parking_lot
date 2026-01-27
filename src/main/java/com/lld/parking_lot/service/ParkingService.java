@@ -1,11 +1,14 @@
 package com.lld.parking_lot.service;
 
+import com.lld.parking_lot.entity.Gate;
 import com.lld.parking_lot.entity.ParkingSpot;
 import com.lld.parking_lot.entity.ParkingTicket;
 import com.lld.parking_lot.entity.Vehicle;
 import com.lld.parking_lot.repository.ParkingTicketRepository;
+import com.lld.parking_lot.repository.GateRepository;
 import com.lld.parking_lot.repository.ParkingSpotRepository;
 import com.lld.parking_lot.repository.VehicleRepository;
+import com.lld.parking_lot.types.GateType;
 import com.lld.parking_lot.types.VehicleType;
 
 import lombok.extern.log4j.Log4j2;
@@ -25,28 +28,39 @@ public class ParkingService {
     private final VehicleRepository vehicleRepository;
     private final ParkingTicketRepository ticketRepository;
     private final ParkingSpotRepository spotRepository;
+    private final GateRepository gateRepository;
 
 
-    public ParkingService(VehicleRepository vehicleRepository, ParkingTicketRepository ticketRepository, ParkingSpotRepository spotRepository) {
+    public ParkingService(VehicleRepository vehicleRepository, ParkingTicketRepository ticketRepository, ParkingSpotRepository spotRepository, GateRepository gateRepository) {
         this.vehicleRepository = vehicleRepository;
         this.ticketRepository = ticketRepository;
         this.spotRepository = spotRepository;
+        this.gateRepository = gateRepository;
     }
 
-    public ParkingTicket enterParkingLot(String licensePlate, VehicleType type) {
+    public ParkingTicket enterParkingLot(String licensePlate, VehicleType type, Long entranceGateId) {
+        Gate entranceGate = gateRepository.findById(entranceGateId)
+                .orElseThrow(() -> new RuntimeException("Invalid Entrance Gate ID: " + entranceGateId));
+        if (entranceGate.getGateType() != GateType.ENTRANCE) {
+            throw new RuntimeException("Gate " + entranceGateId + " is not an entrance gate.");
+        }
         Vehicle vehicle = getOrCreateVehicle(licensePlate, type);
         ParkingSpot spot = assignSpot(vehicle, type);
-        return createTicket(vehicle, spot);
+        return createTicket(vehicle, spot, entranceGate);
     }
+    
+
 
     private Vehicle getOrCreateVehicle(String licensePlate, VehicleType type) {
         return vehicleRepository.findByLicensePlate(licensePlate)
-                .orElseGet(() -> {
-                    Vehicle newVehicle = new Vehicle();
-                    newVehicle.setLicensePlate(licensePlate);
-                    newVehicle.setType(type);
-                    return vehicleRepository.save(newVehicle);
-                });
+                .orElseGet(() -> createVehicle(licensePlate, type));
+    }
+
+    private Vehicle createVehicle(String licensePlate, VehicleType type) {
+        Vehicle newVehicle = new Vehicle();
+        newVehicle.setLicensePlate(licensePlate);
+        newVehicle.setType(type);
+        return vehicleRepository.save(newVehicle);
     }
 
     private ParkingSpot assignSpot(Vehicle vehicle, VehicleType type) {
@@ -56,10 +70,36 @@ public class ParkingService {
         return spotRepository.save(spot);
     }
 
-    private ParkingTicket createTicket(Vehicle vehicle, ParkingSpot spot) {
+    private ParkingTicket createTicket(Vehicle vehicle, ParkingSpot spot, Gate entranceGate) {
         ParkingTicket ticket = new ParkingTicket();
         ticket.setVehicle(vehicle);
         ticket.setParkingSpot(spot);
+        ticket.setEntranceGate(entranceGate);
+        return ticketRepository.save(ticket);
+    }
+
+    public ParkingTicket exitParkingLot(Long ticketId, Long exitGateId) {
+        // 1. Fetch entities
+        ParkingTicket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Invalid Ticket ID: " + ticketId));
+
+        Gate exitGate = gateRepository.findById(exitGateId)
+                .orElseThrow(() -> new RuntimeException("Invalid Exit Gate ID: " + exitGateId));
+        if (exitGate.getGateType() != GateType.EXIT) {
+            throw new RuntimeException("Gate " + exitGateId + " is not an exit gate.");
+        }
+
+        // 2. Free up the spot
+        ParkingSpot spot = ticket.getParkingSpot();
+        spot.setOccupied(false);
+        spot.setCurrentVehicle(null);
+        spotRepository.save(spot);
+
+        // 3. Update the ticket
+        ticket.setExitTime(LocalDateTime.now());
+        ticket.setExitGate(exitGate);
+        // In a real system, you would calculate fees and process payment here.
+        // ticket.setAmount(feeCalculationService.calculateFee(ticket));
         return ticketRepository.save(ticket);
     }
 
@@ -110,6 +150,10 @@ public class ParkingService {
                 break;
             case SUV:
                 types.add(VehicleType.TRUCK);
+                break;
+            case ACCESSIBLE:
+                // Accessible vehicles should only park in accessible spots.
+                // No other spot types are suitable.
                 break;
             default:
                 // TRUCK can only fit in TRUCK

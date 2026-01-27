@@ -7,4 +7,5 @@ import lombok.Data;
 public class EntryRequest {
     private String licensePlate;
     private VehicleType vehicleType;
+    private Long entranceGateId;
 }

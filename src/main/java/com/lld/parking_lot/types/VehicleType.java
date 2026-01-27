@@ -36,5 +36,10 @@ public enum VehicleType {
      * Commercial vehicles or heavy-duty pickups.
      * Likely restricted to ground floor or specific high-clearance zones.
      */
-    TRUCK
+    TRUCK,
+
+    /**
+     * For vehicles requiring accessible parking spots for individuals with disabilities.
+     */
+    ACCESSIBLE
 }
