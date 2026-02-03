@@ -1,6 +1,6 @@
 package com.lld.parking_lot.entity;
 
-import com.lld.parking_lot.types.TicketStatus;
+import com.lld.parking_lot.types.ParkingTicketStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -66,7 +66,7 @@ public class ParkingTicket {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private TicketStatus status = TicketStatus.ACTIVE;
+    private ParkingTicketStatus status = ParkingTicketStatus.ACTIVE;
 
     @PrePersist
     protected void onCreate() {

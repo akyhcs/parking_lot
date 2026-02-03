@@ -53,6 +53,8 @@ public class Payment {
 
     @PrePersist
     protected void onPay() {
-        this.paymentTime = LocalDateTime.now();
+        if (this.paymentTime == null) {
+            this.paymentTime = LocalDateTime.now();
+        }
     }
 }
